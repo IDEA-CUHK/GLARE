@@ -436,7 +436,7 @@ int XYAug::_infer(
                 bool *tmp = All32_last;
                 All32_last = All32_next;
                 All32_next = tmp;
-                // Safe_Call(cudaMemset(All32_next, 1, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/1024)));
+                Safe_Call(cudaMemset(All32_next, 1, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/1024)));
                 // n16384_l11_kernel<<<grid, block, sizeof(float) * (OUT_CHANNEL * 32), stream>>>(
                 //     A_T, B_d[l], C_d, index_d[l], active_d, transpose_batch, neuron, bias
                 // );

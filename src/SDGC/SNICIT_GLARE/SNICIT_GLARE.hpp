@@ -7,7 +7,7 @@
 #include <gpu_lib/header.h>
 #include <XY/kernel.hpp>
 #include <SNICIT/kernel.hpp>
-#include <SNICITAug/kernel.hpp>
+#include <SNICIT_GLARE/kernel.hpp>
 
 #include <cuda.h>
 #include <cstdio>
@@ -15,7 +15,7 @@
 
 namespace SNICIT_SDGC {   
 
-class SNICIT_Aug{
+class SNICIT_GLARE{
 
 private:
 
@@ -41,7 +41,7 @@ private:
 
 public:
 
-    SNICIT_Aug(
+    SNICIT_GLARE(
         const std::string& weight_path,
         const float bias = -.3f,
         const size_t num_neurons_per_layer = 1024,
@@ -60,7 +60,7 @@ public:
 };
 
 
-SNICIT_Aug::SNICIT_Aug(
+SNICIT_GLARE::SNICIT_GLARE(
   const std::string& weight_path,
   const float bias,
   const size_t num_neurons_per_layer,
@@ -69,11 +69,11 @@ SNICIT_Aug::SNICIT_Aug(
 ):
   _weight_path(weight_path), _bias(bias), _neuron(num_neurons_per_layer), _layer(num_layers), _threshold(threshold)
 {
-  std::cout<<("Constructing SNICIT_Aug method......")<<std::endl;
+  std::cout<<("Constructing SNICIT_GLARE method......")<<std::endl;
 }
 
 
-void SNICIT_Aug::_dense_reorder(std::vector<std::vector<float>> &input, Reorder &reorder_class) {
+void SNICIT_GLARE::_dense_reorder(std::vector<std::vector<float>> &input, Reorder &reorder_class) {
     for(int i = 0; i < input.size(); ++i) {
         std::vector<float> tmp(input[i].size());
         for(int j = 0; j < input[i].size(); ++j) {
@@ -85,7 +85,7 @@ void SNICIT_Aug::_dense_reorder(std::vector<std::vector<float>> &input, Reorder 
 }
 
 
-void SNICIT_Aug::infer(
+void SNICIT_GLARE::infer(
   const std::string& input_path,
   const std::string& golden_path,
   const size_t num_inputs,
@@ -187,7 +187,7 @@ void SNICIT_Aug::infer(
             }
         }
         GpuEnv env(0);
-        std::cout << "==========[SNICIT_Aug]============ " << std::endl;
+        std::cout << "==========[SNICIT_GLARE]============ " << std::endl;
         feature += _infer(_input, weight, row_access, batch, _neuron, _bias, _threshold, env);
         std::cout << "[END for round "<< std::to_string(offset / batch) <<"]..." << std::endl;
 
@@ -206,7 +206,7 @@ void SNICIT_Aug::infer(
 
 }
 
-int SNICIT_Aug::_infer(
+int SNICIT_GLARE::_infer(
     std::vector<std::vector<float>> &input,
     std::vector<std::vector<float>> &weight, 
     std::vector<std::vector<int>> &row_access, 
@@ -311,7 +311,8 @@ int SNICIT_Aug::_infer(
     Safe_Call(cudaMalloc((void**)&active_d, sizeof(int) * batch));
     Safe_Call(cudaMalloc((void**)&category_d, sizeof(int) * batch));
     Safe_Call(cudaMalloc((void**)&old_to_new_map_d, sizeof(int) * batch));
-
+    bool *All32_last;
+    bool *All32_next;
     for(int l = 0; l < layer; ++l) {
         Safe_Call(cudaMalloc((void**)&(B_d[l]), sizeof(float) * weight[l].size()));
         Safe_Call(cudaMemcpy(B_d[l], B[l], sizeof(float) * weight[l].size(), cudaMemcpyHostToDevice));
@@ -321,7 +322,7 @@ int SNICIT_Aug::_infer(
     }
 
     float all_time = 0;
-    env.add_event("SNICIT_Aug");
+    env.add_event("SNICIT_GLARE");
     
 
     std::map<int, int> neuron_map = {
@@ -358,8 +359,8 @@ int SNICIT_Aug::_infer(
     float recover_time = 0;
 
     for(int l = 0; l < layer; ++l) {
-        auto stream = env.get_stream("SNICIT_Aug");
-        env.event_start_record("SNICIT_Aug");
+        auto stream = env.get_stream("SNICIT_GLARE");
+        env.event_start_record("SNICIT_GLARE");
         Safe_Call(cudaMemsetAsync(active_d, 0, sizeof(int) * batch, stream));
 
         if(l == 0) {
@@ -421,11 +422,11 @@ int SNICIT_Aug::_infer(
       	            exit(-1);
    	            }
                 transpose_batch = this_round_batch;
-                env.event_stop_record("SNICIT_Aug");
-                float time = env.get_event_time("SNICIT_Aug"); 
+                env.event_stop_record("SNICIT_GLARE");
+                float time = env.get_event_time("SNICIT_GLARE"); 
                 all_time += time;
                 pre_conv_time += time;
-                env.event_start_record("SNICIT_Aug");
+                env.event_start_record("SNICIT_GLARE");
                 Safe_Call(cudaMallocManaged(
                     &y_star_idx,
                     sample_size * sizeof(int)
@@ -511,11 +512,16 @@ int SNICIT_Aug::_infer(
                         rowsY[nerow++] = idx;
                     }
                 }
-                env.event_stop_record("SNICIT_Aug");
-                float time1 = env.get_event_time("SNICIT_Aug"); 
+                Safe_Call(cudaMallocManaged((void**)&All32_last, sizeof(bool) * (transpose_batch) * (neuron/1024)));
+                Safe_Call(cudaMallocManaged((void**)&All32_next, sizeof(bool) * (transpose_batch) * (neuron/1024)));
+                Safe_Call(cudaMemset(All32_last, 0, sizeof(bool) * (transpose_batch) * (neuron/1024)));
+                Safe_Call(cudaMemset(All32_next, 1, sizeof(bool) * (transpose_batch) * (neuron/1024)));
+
+                env.event_stop_record("SNICIT_GLARE");
+                float time1 = env.get_event_time("SNICIT_GLARE"); 
                 all_time += time1;
                 cluster_time += time1;
-                env.event_start_record("SNICIT_Aug");
+                env.event_start_record("SNICIT_GLARE");
             }
             if (l < threshold)
             {
@@ -531,14 +537,18 @@ int SNICIT_Aug::_infer(
                 post_conv_count++;
                 dim3 block(OUT_CHANNEL, 1, 1);
                 dim3 grid(neuron / OUT_CHANNEL, nerow, 1);
-                post_spMM<<<grid, block, sizeof(float)*32, stream>>>(
-                    A_d, C_d, rowsY, B_d[l], index_d[l], transpose_batch, neuron
+                post_spMM_GLARE<<<grid, block, sizeof(float)*32, stream>>>(
+                    A_d, C_d, ne_record, centroid_map, rowsY, B_d[l], index_d[l], All32_last, All32_next, transpose_batch, bias, neuron
                 );
                 Safe_Call(cudaStreamSynchronize(stream));
-                post_minus<<<nerow, 1024, 0, stream>>>(
-                    C_d, A_d, ne_record, centroid_map, rowsY, neuron, bias, transpose_batch
+                post_minus_GLARE<<<nerow, 1024, 0, stream>>>(
+                    C_d, A_d, ne_record, centroid_map, rowsY, neuron, transpose_batch
                 );
                 Safe_Call(cudaStreamSynchronize(stream));
+                bool *tmp = All32_last;
+                All32_last = All32_next;
+                All32_next = tmp;
+                // Safe_Call(cudaMemset(All32_next, 1, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/1024)));
             }
 
             cudaError_t err = cudaGetLastError();        
@@ -632,8 +642,8 @@ int SNICIT_Aug::_infer(
 
         if(l == threshold-1)
             Safe_Call(cudaMemcpyAsync(old_to_new_map_d, old_to_new_map, sizeof(int) * transpose_batch, cudaMemcpyHostToDevice, stream));
-        env.event_stop_record("SNICIT_Aug");
-        float time = env.get_event_time("SNICIT_Aug"); 
+        env.event_stop_record("SNICIT_GLARE");
+        float time = env.get_event_time("SNICIT_GLARE"); 
         all_time += time;
         if (l <= threshold) {
             pre_conv_time += time;
@@ -643,13 +653,13 @@ int SNICIT_Aug::_infer(
         }
     }
 
-    auto stream = env.get_stream("SNICIT_Aug");
-    env.event_start_record("SNICIT_Aug");
+    auto stream = env.get_stream("SNICIT_GLARE");
+    env.event_start_record("SNICIT_GLARE");
     recover<<<transpose_batch, 1024, 0, stream>>>(A_d, active_d, centroid_map, neuron, transpose_batch);
     Safe_Call(cudaDeviceSynchronize());
     Safe_Call(cudaMemcpy(active, active_d, sizeof(int) * transpose_batch, cudaMemcpyDeviceToHost));
-    env.event_stop_record("SNICIT_Aug");
-    float time = env.get_event_time("SNICIT_Aug"); 
+    env.event_stop_record("SNICIT_GLARE");
+    float time = env.get_event_time("SNICIT_GLARE"); 
     all_time += time;
     recover_time = time;
     feature = 0;
@@ -660,11 +670,11 @@ int SNICIT_Aug::_infer(
     }
 
 	
-	std::cout << "pre-conv Time [SNICIT_Aug] = " << pre_conv_time <<  "ms" <<std::endl;
+	std::cout << "pre-conv Time [SNICIT_GLARE] = " << pre_conv_time <<  "ms" <<std::endl;
 	std::cout << "cluster-based conversion Time [overhead] = " << cluster_time <<  "ms" <<std::endl;
-	std::cout << "post-conv Time [SNICIT_Aug] = " << post_conv_time <<  "ms" <<std::endl;
-	std::cout << "recover Time [SNICIT_Aug] = " << recover_time <<  "ms" <<std::endl;
-    std::cout << "SNICIT_Aug info: runtime " << all_time <<  "ms" <<
+	std::cout << "post-conv Time [SNICIT_GLARE] = " << post_conv_time <<  "ms" <<std::endl;
+	std::cout << "recover Time [SNICIT_GLARE] = " << recover_time <<  "ms" <<std::endl;
+    std::cout << "SNICIT_GLARE info: runtime " << all_time <<  "ms" <<
     " avgpost " << post_conv_time / (post_conv_count) <<  "ms" <<std::endl;
 
     delete [] A;

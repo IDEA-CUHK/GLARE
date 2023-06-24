@@ -7,6 +7,7 @@
 #include <XY/XY.hpp>
 #include <XYAug/XYAug.hpp>
 #include <SNICIT/SNICIT.hpp>
+#include <SNICIT_GLARE/SNICIT_GLARE.hpp>
 #include <BFAug/BFAug.hpp>
 #include <BF/BF.hpp>
 #include <iostream>
@@ -134,6 +135,16 @@ int main(int argc, char* argv[]) {
       threshold
     );
     snicit.infer(input_path, golden_path, 60000, input_batch_size);
+  }
+  else if(mode == "SNICIT_GLARE") {
+    SNICIT_SDGC::SNICIT_GLARE snicitglare(
+      weight_path, 
+      bias,
+      num_neurons, 
+      num_layers,
+      threshold
+    );
+    snicitglare.infer(input_path, golden_path, 60000, input_batch_size);
   }
   else {
     using namespace std::literals::string_literals;

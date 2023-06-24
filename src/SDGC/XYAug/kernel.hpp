@@ -17,7 +17,7 @@ __global__ void n16384_l11_kernel_Aug(
 ) {
     
     extern __shared__ float shared[];
-    __shared__ bool thisAll32[16], nextAll32[2];
+    __shared__ bool thisAll32[16];
 
     for(int n = threadIdx.x; n < OUT_CHANNEL * 32; n += blockDim.x){
         shared[n] = B[(blockIdx.y * OUT_CHANNEL * 32) + n];
@@ -25,7 +25,7 @@ __global__ void n16384_l11_kernel_Aug(
     if(threadIdx.x < neuron / 1024) {
         thisAll32[threadIdx.x] = All32_0[(neuron / 1024)*blockIdx.x+threadIdx.x];
     }
-    nextAll32[1] = true;
+
     __syncthreads();
 
     if((blockIdx.x * blockDim.x + threadIdx.x) >= batch) return;
@@ -37,7 +37,7 @@ __global__ void n16384_l11_kernel_Aug(
         for(int r = 0; r < 32; ++r) {
             int row_idx = index[idx + r];  // check every?
             float val;
-            if (thisAll32[0]) { // thisAll32[row_idx / 1024]
+            if (thisAll32[row_idx / 1024]) { // thisAll32[row_idx / 1024]
                 val = 32.0;
             }
             else 
@@ -75,9 +75,9 @@ __global__ void n16384_l11_kernel_Aug(
     if (count < OUT_CHANNEL) {
         All32_1[(neuron / 1024)*blockIdx.x+(blockIdx.y*OUT_CHANNEL)/1024] = false;
     }
-    if (threadIdx.x < neuron/1024) {
-        All32_0[(neuron / 1024)*blockIdx.x+threadIdx.x] = true;
-    }
+    // if (threadIdx.x < neuron/1024) {
+    //     All32_0[(neuron / 1024)*blockIdx.x+threadIdx.x] = true;
+    // }
 }
 
 }
