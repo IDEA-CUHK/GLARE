@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-namespace SNICIT_SDGC {
+namespace GLARE {
     #ifndef NDEBUG
     #   define assert_msg(Expr, Msg) \
         Debug::assert_msg_(#Expr, Expr, __FILE__, __LINE__, Msg)

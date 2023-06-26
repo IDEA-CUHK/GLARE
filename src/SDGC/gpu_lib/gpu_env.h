@@ -7,7 +7,7 @@
 #include <string>
 #include <map>
 
-namespace SNICIT_SDGC {
+namespace GLARE {
     class GpuEnv {
         std::vector<cudaStream_t> streams;
         std::vector<cudaEvent_t> start_event;

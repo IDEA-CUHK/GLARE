@@ -12,7 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-namespace SNICIT_SDGC {   
+namespace GLARE {   
 
 class SNICIT{
 

@@ -6,15 +6,15 @@
 #include <reorder/header.h>
 #include <gpu_lib/header.h>
 #include <XY/kernel.hpp>
-#include <XYAug/kernel.hpp>
+#include <XY_GLARE/kernel.hpp>
 
 #include <cuda.h>
 #include <cstdio>
 #include <cstdlib>
 
-namespace SNICIT_SDGC {   
+namespace GLARE {   
 
-class XYAug{
+class XY_GLARE{
 
 private:
 
@@ -39,7 +39,7 @@ private:
 
 public:
 
-    XYAug(
+    XY_GLARE(
         const std::string& weight_path,
         const float bias = -.3f,
         const size_t num_neurons_per_layer = 1024,
@@ -58,7 +58,7 @@ public:
 };
 
 
-XYAug::XYAug(
+XY_GLARE::XY_GLARE(
   const std::string& weight_path,
   const float bias,
   const size_t num_neurons_per_layer,
@@ -67,11 +67,11 @@ XYAug::XYAug(
 ):
   _weight_path(weight_path), _bias(bias), _neuron(num_neurons_per_layer), _layer(num_layers), _threshold(threshold)
 {
-  std::cout<<("Constructing XYAug method......")<<std::endl;
+  std::cout<<("Constructing XY_GLARE method......")<<std::endl;
 }
 
 
-void XYAug::_dense_reorder(std::vector<std::vector<float>> &input, Reorder &reorder_class) {
+void XY_GLARE::_dense_reorder(std::vector<std::vector<float>> &input, Reorder &reorder_class) {
     for(int i = 0; i < input.size(); ++i) {
         std::vector<float> tmp(input[i].size());
         for(int j = 0; j < input[i].size(); ++j) {
@@ -83,7 +83,7 @@ void XYAug::_dense_reorder(std::vector<std::vector<float>> &input, Reorder &reor
 }
 
 
-void XYAug::infer(
+void XY_GLARE::infer(
   const std::string& input_path,
   const std::string& golden_path,
   const size_t num_inputs,
@@ -185,7 +185,7 @@ void XYAug::infer(
             }
         }
         GpuEnv env(0);
-        std::cout << "==========[Champion XYAug-2021]============ " << std::endl;
+        std::cout << "==========[Champion XY_GLARE-2021]============ " << std::endl;
         feature += _infer(_input, weight, row_access, batch, _neuron, _bias, env);
         std::cout << "[END for round "<< std::to_string(offset / batch) <<"]..." << std::endl;
 
@@ -204,7 +204,7 @@ void XYAug::infer(
 
 }
 
-int XYAug::_infer(
+int XY_GLARE::_infer(
     std::vector<std::vector<float>> &input,
     std::vector<std::vector<float>> &weight, 
     std::vector<std::vector<int>> &row_access, 
@@ -308,7 +308,7 @@ int XYAug::_infer(
     float all_time = 0;
     float stat_time = 0;
     int post_conv_cnt = 0;
-    env.add_event("XYAug-2021");
+    env.add_event("XY_GLARE-2021");
     
 
     std::map<int, int> neuron_map = {
@@ -339,8 +339,8 @@ int XYAug::_infer(
     int transpose_batch = 0;
     int feature = 0;
     for(int l = 0; l < layer; ++l) {
-        auto stream = env.get_stream("XYAug-2021");
-        env.event_start_record("XYAug-2021");
+        auto stream = env.get_stream("XY_GLARE-2021");
+        env.event_start_record("XY_GLARE-2021");
         Safe_Call(cudaMemsetAsync(active_d, 0, sizeof(int) * batch, stream));
 
         if(l == 0) {
@@ -429,7 +429,7 @@ int XYAug::_infer(
             dim3 block(blocksizex);
             dim3 grid((transpose_batch + blocksizex - 1) / blocksizex,  neuron / (OUT_CHANNEL));
             if (l >= 22) {
-                n16384_l11_kernel_Aug<<<grid, block, sizeof(float) * (OUT_CHANNEL * 32), stream>>>(
+                n16384_l11_kernel_GLARE<<<grid, block, sizeof(float) * (OUT_CHANNEL * 32), stream>>>(
                     A_T, B_d[l], C_d, index_d[l], active_d, All32_last, All32_next, transpose_batch, neuron, bias
                 );
                 Safe_Call(cudaStreamSynchronize(stream));
@@ -525,8 +525,8 @@ int XYAug::_infer(
 
         if(l == 21)
             Safe_Call(cudaMemcpyAsync(old_to_new_map_d, old_to_new_map, sizeof(int) * transpose_batch, cudaMemcpyHostToDevice, stream));
-        env.event_stop_record("XYAug-2021-kernel");
-        float time = env.get_event_time("XYAug-2021-kernel"); 
+        env.event_stop_record("XY_GLARE-2021-kernel");
+        float time = env.get_event_time("XY_GLARE-2021-kernel"); 
         if (l >= _threshold) {
             stat_time += time;
             post_conv_cnt++;
@@ -535,7 +535,7 @@ int XYAug::_infer(
     }
 
 	Safe_Call(cudaMemcpy(C, C_d, sizeof(float) * neuron * batch, cudaMemcpyDeviceToHost));
-	std::cout << "XYAug info: runtime " << all_time <<  "ms" << 
+	std::cout << "XY_GLARE info: runtime " << all_time <<  "ms" << 
     " avgpost " << stat_time/post_conv_cnt <<  "ms" <<std::endl;
 
     delete [] A;

@@ -11,7 +11,7 @@
 #include "type.h"
 
 
-namespace SNICIT_SDGC {
+namespace GLARE {
     class SparseMatrix {
     public:
         struct Elm {

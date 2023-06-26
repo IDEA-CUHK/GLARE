@@ -1,9 +1,9 @@
 #pragma once
 
-namespace SNICIT_SDGC{
+namespace GLARE{
 
 __global__ 
-void bf_inferenceAug(
+void bf_inference_GLARE(
   const float* Y0,
   const size_t nerowsY,
   const int* rowsY0,
@@ -26,7 +26,7 @@ void bf_inferenceAug(
 //-----------------------------------------------------------------------------
 
 __global__ 
-void bf_inferenceAug(
+void bf_inference_GLARE(
   const float* Y0,
   const size_t nerowsY,
   const int* rowsY0,
@@ -99,14 +99,8 @@ void bf_inferenceAug(
       count += __syncthreads_count(v > 0);
       localcount32 = __syncthreads_count(v >= 32);
       if(j + tid < COL_BLK) {
-        if (localcount32 >= blockDim.x * blockDim.y && !thisAll32) {
-            // Y1[rid * num_neurons_per_layer + i * COL_BLK + j + tid] = 32.0;
-            if (!thisAll32) {
-                Y1[rid * num_neurons_per_layer + i * COL_BLK + j + tid] = 32.0;
-            }
-        }
-        else {
-            Y1[rid * num_neurons_per_layer + i * COL_BLK + j + tid] = min(float(32), max(float(0), v));
+        if (v < 32 || !thisAll32) {
+          Y1[rid * num_neurons_per_layer + i * COL_BLK + j + tid] =  min(float(32), max(float(0), v));
         }
         count32 += localcount32;
       }

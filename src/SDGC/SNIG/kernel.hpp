@@ -1,6 +1,6 @@
 #pragma once
 
-namespace SNICIT_SDGC {
+namespace GLARE {
 
 __global__ 
 void snig_inference(

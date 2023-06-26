@@ -5,7 +5,7 @@
 #include <BF/kernel.hpp>
 
 
-namespace SNICIT_SDGC{
+namespace GLARE{
 
 class BF : public Base {
   //Since we don't have NVlink,

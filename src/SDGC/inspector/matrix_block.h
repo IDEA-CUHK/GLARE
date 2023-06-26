@@ -6,7 +6,7 @@
 #include "../utils/debug.h"
 #include "../utils/matrix.h"
 
-namespace SNICIT_SDGC {
+namespace GLARE {
     using namespace std;
     
     enum MatrixBlockProp {

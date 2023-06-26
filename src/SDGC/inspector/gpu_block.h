@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 
-namespace SNICIT_SDGC {
+namespace GLARE {
     class GpuBlock {
         int block_idx_;
         int block_idy_;

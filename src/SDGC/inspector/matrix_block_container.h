@@ -10,7 +10,7 @@
 #include "matrix_block.h"
 #include "matrix_block_gen.h"
 
-namespace SNICIT_SDGC {
+namespace GLARE {
 
     using namespace std;
     

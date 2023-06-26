@@ -2,7 +2,7 @@
 
 #include <utils/matrix_base.h>
 
-namespace SNICIT_SDGC {
+namespace GLARE {
 
 enum REORDER {
     COL_REORDER,

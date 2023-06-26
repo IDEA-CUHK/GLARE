@@ -6,7 +6,7 @@
 #include "../utils/matrix.h"
 // #include "../utils/string.h"
 
-namespace SNICIT_SDGC {
+namespace GLARE {
 
     class SparseMatrixBlockGen {
 

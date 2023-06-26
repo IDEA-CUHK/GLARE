@@ -1,17 +1,17 @@
 #pragma once
 
 #include <Eigen/Core>
-#include <SNIGAug/kernel.hpp>
+#include <SNIG_GLARE/kernel.hpp>
 #include <base.hpp>
 #include <utility.hpp>
 #include <taskflow/taskflow.hpp>
 #include <taskflow/cudaflow.hpp>
 
 
-namespace SNICIT_SDGC {
+namespace GLARE {
 
 
-class SNIGAug : public Base {
+class SNIG_GLARE : public Base {
 
   
   private:
@@ -49,14 +49,14 @@ class SNIGAug : public Base {
 
   public:
 
-    SNIGAug(
+    SNIG_GLARE(
       const std::string& weight_path,
       const float bias = -.3f,
       const size_t num_neurons_per_layer = 1024,
       const size_t num_layers = 120
     );
 
-    ~SNIGAug();
+    ~SNIG_GLARE();
 
     void infer(
       const std::string& input_path,
@@ -69,10 +69,10 @@ class SNIGAug : public Base {
 };
 
 // ----------------------------------------------------------------------------
-// Definition of SNIGAug
+// Definition of SNIG_GLARE
 // ----------------------------------------------------------------------------
 
-SNIGAug::SNIGAug(
+SNIG_GLARE::SNIG_GLARE(
   const std::string& weight_path,
   const float bias,
   const size_t num_neurons_per_layer,
@@ -80,11 +80,11 @@ SNIGAug::SNIGAug(
 ):
   Base(weight_path, bias, num_neurons_per_layer, num_layers)
 {
-  std::cout<<("Constructing SNIGAug method......")<<std::endl;
+  std::cout<<("Constructing SNIG_GLARE method......")<<std::endl;
 }
 
 
-SNIGAug::~SNIGAug() {
+SNIG_GLARE::~SNIG_GLARE() {
 
   checkCuda(cudaFree(_source_Y));
   checkCuda(cudaFree(_source_is_nonzero_row));
@@ -99,7 +99,7 @@ SNIGAug::~SNIGAug() {
   checkCuda(cudaFree(_results));
 }
 
-void SNIGAug::infer(
+void SNIG_GLARE::infer(
   const std::string& input_path,
   const std::string& golden_path,
   const size_t num_inputs,
@@ -132,7 +132,7 @@ void SNIGAug::infer(
 
 }
 
-void SNIGAug::_set_parameters(
+void SNIG_GLARE::_set_parameters(
   const size_t num_inputs,
   const size_t batch_size,
   const size_t num_weight_buffers
@@ -146,7 +146,7 @@ void SNIGAug::_set_parameters(
 
 }
 
-void SNIGAug::_preprocess(const std::string& input_path) {
+void SNIG_GLARE::_preprocess(const std::string& input_path) {
   std::cout <<"Preprocessing...... "<<std::endl;
   auto _tic = std::chrono::steady_clock::now();
 
@@ -165,13 +165,13 @@ void SNIGAug::_preprocess(const std::string& input_path) {
 }
 
 
-void SNIGAug::_infer() {
+void SNIG_GLARE::_infer() {
   std::cout <<"Start inference...... "<<std::endl;
   auto _tic = std::chrono::steady_clock::now();
   size_t accumulated_duplicates{0}; 
 
   //Use taskflow and cudaGraph to implement task graph
-  tf::Taskflow taskflow("SNIGAug");
+  tf::Taskflow taskflow("SNIG_GLARE");
   tf::Executor executor;
   tf::Task stop_inners;
   tf::Task first_fetchs;
@@ -228,7 +228,7 @@ void SNIGAug::_infer() {
           grid_dim,
           dim3(2, 512, 1),
           sizeof(float) * Base::_sec_size,
-          snig_inferenceAug,
+          snig_inference_GLARE,
           _dev_Y[k % 2],
           _dev_is_nonzero_row[k % 2],
           Base::_sec_size,
@@ -304,10 +304,10 @@ void SNIGAug::_infer() {
 
   auto _toc = std::chrono::steady_clock::now();
   auto _duration = std::chrono::duration_cast<std::chrono::microseconds>(_toc - _tic).count();
-  std::cout<<"SNIGAug info: runtime "<<_duration / 1000.0<< " ms"<<std::endl;
+  std::cout<<"SNIG_GLARE info: runtime "<<_duration / 1000.0<< " ms"<<std::endl;
 }
 
-void SNIGAug::_weight_alloc() {
+void SNIG_GLARE::_weight_alloc() {
   std::vector<int*> W(_num_weight_buffers, nullptr);
 
     for(auto& each_W : W) {
@@ -320,7 +320,7 @@ void SNIGAug::_weight_alloc() {
 
 }
 
-void SNIGAug::_input_alloc() {
+void SNIG_GLARE::_input_alloc() {
   size_t ylen = Base::_num_inputs *  Base::_num_neurons;
   size_t ysize = ylen * sizeof(float);
 
@@ -346,7 +346,7 @@ void SNIGAug::_input_alloc() {
   }
 }
 
-void SNIGAug::_result_alloc() {
+void SNIG_GLARE::_result_alloc() {
   checkCuda(cudaMallocManaged(&_results, sizeof(int) * Base::_num_inputs));
   checkCuda(cudaMemset(_results, 0, sizeof(int) * Base::_num_inputs));
 }

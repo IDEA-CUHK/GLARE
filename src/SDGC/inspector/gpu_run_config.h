@@ -1,6 +1,6 @@
 #pragma once
 
-namespace SNICIT_SDGC {
+namespace GLARE {
     class GpuRunConfig {
     public:
         int block_num;

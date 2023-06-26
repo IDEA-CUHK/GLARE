@@ -8,7 +8,7 @@
 #include <taskflow/cudaflow.hpp>
 
 
-namespace SNICIT_SDGC {
+namespace GLARE {
 
 
 class SNIG : public Base {

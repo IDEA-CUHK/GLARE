@@ -3,7 +3,7 @@
 #include <utils/header.h>
 #include "reorder.h"
 
-namespace SNICIT_SDGC {
+namespace GLARE {
     class HashReorder : public Reorder {
         
         int buckets_num_;

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace SNICIT_SDGC{
+namespace GLARE{
 
 __device__ inline float __ReLU(float x){
    return x<0.0?0.0:x>32.0?32.0:x;

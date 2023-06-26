@@ -12,7 +12,7 @@
 #include <filesystem>
 #include <thrust/execution_policy.h>
 
-namespace SNICIT_SDGC {
+namespace GLARE {
 
 size_t get_sec_size(const size_t num_neurons) {
 

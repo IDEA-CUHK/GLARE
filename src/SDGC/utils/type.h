@@ -2,6 +2,6 @@
 #include <vector>
 #include <string>
 
-namespace SNICIT_SDGC {
+namespace GLARE {
     typedef float SparseDataType;
 };

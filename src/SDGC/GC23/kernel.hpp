@@ -3,7 +3,7 @@
 #define UNROLL 8
 #define YSTARTOP 20
 
-namespace SNICIT_SDGC {
+namespace GLARE {
 
 
 __global__ void n16384l1_kernel_GC23(

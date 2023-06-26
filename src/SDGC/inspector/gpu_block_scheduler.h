@@ -7,7 +7,7 @@
 
 #include <map>
 
-namespace SNICIT_SDGC {
+namespace GLARE {
     class BlockSchedule {
     protected:
         friend class MaxInReuseBSchedule;

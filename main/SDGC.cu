@@ -3,12 +3,12 @@
 
 #include <CLI11/CLI11.hpp>
 #include <SNIG/SNIG.hpp>
-#include <SNIGAug/SNIGAug.hpp>
+#include <SNIG_GLARE/SNIG_GLARE.hpp>
 #include <XY/XY.hpp>
-#include <XYAug/XYAug.hpp>
+#include <XY_GLARE/XY_GLARE.hpp>
 #include <SNICIT/SNICIT.hpp>
 #include <SNICIT_GLARE/SNICIT_GLARE.hpp>
-#include <BFAug/BFAug.hpp>
+#include <BF_GLARE/BF_GLARE.hpp>
 #include <BF/BF.hpp>
 #include <iostream>
 
@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
   std::cout << "Current mode: " << mode << std::endl;
 
   if(mode == "BF") {
-    SNICIT_SDGC::BF bf(
+    GLARE::BF bf(
       weight_path, 
       bias,
       num_neurons, 
@@ -79,17 +79,17 @@ int main(int argc, char* argv[]) {
     );
     bf.infer(input_path, golden_path, 60000);
   }
-  else if(mode == "BFAug") {
-    SNICIT_SDGC::BFAug bfaug(
+  else if(mode == "BF_GLARE") {
+    GLARE::BF_GLARE bfglare(
       weight_path, 
       bias,
       num_neurons, 
       num_layers
     );
-    bfaug.infer(input_path, golden_path, 60000);
+    bfglare.infer(input_path, golden_path, 60000);
   }
   else if(mode == "SNIG") {
-    SNICIT_SDGC::SNIG snig(
+    GLARE::SNIG snig(
       weight_path, 
       bias,
       num_neurons, 
@@ -97,17 +97,17 @@ int main(int argc, char* argv[]) {
     );
     snig.infer(input_path, golden_path, 60000, 60000, 2);
   }
-  else if(mode == "SNIGAug") {
-    SNICIT_SDGC::SNIGAug snigaug(
+  else if(mode == "SNIG_GLARE") {
+    GLARE::SNIG_GLARE snigglare(
       weight_path, 
       bias,
       num_neurons, 
       num_layers
     );
-    snigaug.infer(input_path, golden_path, 60000, 60000, 2);
+    snigglare.infer(input_path, golden_path, 60000, 60000, 2);
   }
   else if(mode == "XY") {
-    SNICIT_SDGC::XY xy(
+    GLARE::XY xy(
       weight_path, 
       bias,
       num_neurons, 
@@ -116,18 +116,18 @@ int main(int argc, char* argv[]) {
     );
     xy.infer(input_path, golden_path, 60000, input_batch_size);
   }
-  else if(mode == "XYAug") {
-    SNICIT_SDGC::XYAug xyaug(
+  else if(mode == "XY_GLARE") {
+    GLARE::XY_GLARE xyglare(
       weight_path, 
       bias,
       num_neurons, 
       num_layers,
       threshold
     );
-    xyaug.infer(input_path, golden_path, 60000, input_batch_size);
+    xyglare.infer(input_path, golden_path, 60000, input_batch_size);
   }
   else if(mode == "SNICIT") {
-    SNICIT_SDGC::SNICIT snicit(
+    GLARE::SNICIT snicit(
       weight_path, 
       bias,
       num_neurons, 
@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
     snicit.infer(input_path, golden_path, 60000, input_batch_size);
   }
   else if(mode == "SNICIT_GLARE") {
-    SNICIT_SDGC::SNICIT_GLARE snicitglare(
+    GLARE::SNICIT_GLARE snicitglare(
       weight_path, 
       bias,
       num_neurons, 

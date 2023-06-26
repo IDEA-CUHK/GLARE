@@ -2,12 +2,12 @@
 #include <Eigen/Core>
 #include <utility.hpp>
 #include <base.hpp>
-#include <BFAug/kernel.hpp>
+#include <BF_GLARE/kernel.hpp>
 
 
-namespace SNICIT_SDGC{
+namespace GLARE{
 
-class BFAug : public Base {
+class BF_GLARE : public Base {
   //Since we don't have NVlink,
   //this implementation doesn't do load balancing at each iteration.
   //It actually let GPUs work in their own partitioned input data
@@ -53,14 +53,14 @@ class BFAug : public Base {
 
   public:
 
-    BFAug(
+    BF_GLARE(
       const std::string& weight_path,
       const float bias = -.3f,
       const size_t num_neurons_per_layer = 1024,
       const size_t num_layers = 120
     );
 
-    ~BFAug();
+    ~BF_GLARE();
     
     void infer(
       const std::string& input_path,
@@ -73,7 +73,7 @@ class BFAug : public Base {
 // ----------------------------------------------------------------------------
 // Definition of BF
 // ----------------------------------------------------------------------------
-BFAug::BFAug(
+BF_GLARE::BF_GLARE(
   const std::string& weight_path,
   const float bias,
   const size_t num_neurons,
@@ -84,7 +84,7 @@ BFAug::BFAug(
   std::cout<<("Constructing BF method......")<<std::endl;
 }
 
-BFAug:: ~BFAug() {
+BF_GLARE:: ~BF_GLARE() {
   for(auto& each_Y : _Y) {
     checkCuda(cudaFree(each_Y));
   }
@@ -100,7 +100,7 @@ BFAug:: ~BFAug() {
   checkCuda(cudaFree(_results));
 }
 
-void BFAug::infer(
+void BF_GLARE::infer(
   const std::string& input_path,
   const std::string& golden_path,
   const size_t num_inputs
@@ -129,7 +129,7 @@ void BFAug::infer(
 }
 
 
-void BFAug::_set_parameters(
+void BF_GLARE::_set_parameters(
   const size_t num_inputs
 ) {
   std::cout<<"Total input size : " << num_inputs<<std::endl;
@@ -137,7 +137,7 @@ void BFAug::_set_parameters(
   Base::_num_inputs = num_inputs; 
 }
 
-void BFAug::_preprocess(const std::string& input_path) {
+void BF_GLARE::_preprocess(const std::string& input_path) {
   std::cout<<"Preprocessing...... "<<std::endl;
   auto _tic = std::chrono::steady_clock::now();
 
@@ -159,7 +159,7 @@ void BFAug::_preprocess(const std::string& input_path) {
 }
 
 
-void BFAug::_infer() {
+void BF_GLARE::_infer() {
   std::cout<<("Start inference...... ")<<std::endl;
   auto _tic = std::chrono::steady_clock::now();
   //store results
@@ -185,7 +185,7 @@ void BFAug::_infer() {
     int* colsw = _dev_W[cur_layer % 2] + Base::_num_neurons * Base::_num_secs + 1;
     float* valsw = (float*)(_dev_W[cur_layer % 2] + Base::_p_w_index_len);
     // printf("cur_layer=%d\n", cur_layer);
-    bf_inferenceAug<<<_dev_nerowsY, dim3(2, 512, 1), sizeof(float) * Base::_sec_size, dev_stream[1]>>>(
+    bf_inference_GLARE<<<_dev_nerowsY, dim3(2, 512, 1), sizeof(float) * Base::_sec_size, dev_stream[1]>>>(
       _dev_Y[cur_layer % 2],
       _dev_nerowsY,
       _dev_rowsY[cur_layer % 2],
@@ -223,10 +223,10 @@ void BFAug::_infer() {
 
   auto _toc = std::chrono::steady_clock::now();
   auto _duration = std::chrono::duration_cast<std::chrono::microseconds>(_toc - _tic).count();
-  std::cout<<"BFAug info: runtime "<<_duration / 1000.0<<" ms"<<std::endl;
+  std::cout<<"BF_GLARE info: runtime "<<_duration / 1000.0<<" ms"<<std::endl;
 }
 
-void BFAug::_non_empty_rows(const size_t buff) {
+void BF_GLARE::_non_empty_rows(const size_t buff) {
   _dev_nerowsY = 0;
   for(size_t i = 0; i < _dev_num_inputs; ++i) {
     if((_dev_rlenY[buff])[i] > 0) {
@@ -235,7 +235,7 @@ void BFAug::_non_empty_rows(const size_t buff) {
   }
 }
 
-void BFAug::_weight_alloc() {
+void BF_GLARE::_weight_alloc() {
   std::vector<int*> W(2, nullptr);
 
   checkCuda(cudaMallocManaged(
@@ -256,7 +256,7 @@ void BFAug::_weight_alloc() {
   _dev_W = W;
 }
 
-void BFAug::_input_alloc() {
+void BF_GLARE::_input_alloc() {
   size_t ylen = Base::_num_inputs * Base::_num_neurons;
   size_t ysize = ylen * sizeof(float);
   size_t ry_size = Base::_num_inputs * sizeof(int);
@@ -320,7 +320,7 @@ void BFAug::_input_alloc() {
 
 }
 
-void BFAug::_result_alloc() {
+void BF_GLARE::_result_alloc() {
   //final results allocation
   checkCuda(cudaMallocManaged(&_results, sizeof(int) * Base::_num_inputs));
   checkCuda(cudaMemset(_results, 0, sizeof(int) * Base::_num_inputs));

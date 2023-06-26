@@ -3,7 +3,7 @@
 #define UNROLL 8
 #define YSTARTOP 20
 #include <XY/kernel.hpp>
-namespace SNICIT_SDGC {
+namespace GLARE {
 
 
 __global__ void coarse_cluster(

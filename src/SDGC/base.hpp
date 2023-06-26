@@ -7,7 +7,7 @@
 #include <fstream>
 
 
-namespace SNICIT_SDGC {
+namespace GLARE {
 
 class Base {
 

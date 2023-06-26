@@ -1,9 +1,9 @@
 #pragma once
 
-namespace SNICIT_SDGC{
+namespace GLARE{
 
 #define OUT_CHANNEL 16
-__global__ void n16384_l11_kernel_Aug(
+__global__ void n16384_l11_kernel_GLARE(
     float * __restrict__ A, 
     float * __restrict__ B, 
     float * __restrict__ C, 
@@ -53,31 +53,15 @@ __global__ void n16384_l11_kernel_Aug(
             if (v != 0) {
                 active[blockIdx.x * blockDim.x + threadIdx.x] = 1;
             }
-            // if (v!=32) {
-            //     if (blockIdx.y == 0 && c == 0) {
-            //         printf("not32colidx = %d    ", blockDim.x*blockIdx.x+threadIdx.x);
-            //     }
-            // }
             if (v!=32 || !(thisAll32[(blockIdx.y * OUT_CHANNEL  + o_r * 16 + c) / 1024])) {
                 C[(blockIdx.y * OUT_CHANNEL  + o_r * 16 + c) * batch + blockIdx.x * blockDim.x + threadIdx.x] = v;
             }
-            // C[(blockIdx.y * OUT_CHANNEL  + o_r * 16 + c) * batch + blockIdx.x * blockDim.x + threadIdx.x] = v;
-            // printf("v=%f", v);
             count += (v == 32.0);
         }
     }
-    // if (blockIdx.x == 0) printf("count=%d ", count);
-    // nextAll32[count<OUT_CHANNEL] = false;
-    // __syncthreads();
-    // if (threadIdx.x == 0) {
-    //     All32_1[(neuron / 1024)*blockIdx.x+(blockIdx.y*OUT_CHANNEL)/1024] = nextAll32[count<OUT_CHANNEL];
-    // }
     if (count < OUT_CHANNEL) {
         All32_1[(neuron / 1024)*blockIdx.x+(blockIdx.y*OUT_CHANNEL)/1024] = false;
     }
-    // if (threadIdx.x < neuron/1024) {
-    //     All32_0[(neuron / 1024)*blockIdx.x+threadIdx.x] = true;
-    // }
 }
 
 }

@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <iostream>
-namespace SNICIT_SDGC {
+namespace GLARE {
     struct MatrixPos{
         int row_idx;
         int col_idx;

@@ -1,9 +1,9 @@
 #pragma once
 
-namespace SNICIT_SDGC {
+namespace GLARE {
 
 __global__ 
-void snig_inferenceAug(
+void snig_inference_GLARE(
   const float* Y_0,
   const bool* is_nonzero_row_0,
   const size_t sec_size,
@@ -24,7 +24,7 @@ void snig_inferenceAug(
 //-----------------------------------------------------------------------------
 
 __global__ 
-void snig_inferenceAug(
+void snig_inference_GLARE(
   const float* Y_0,
   const bool* is_nonzero_row_0,
   const size_t sec_size,
@@ -40,7 +40,7 @@ void snig_inferenceAug(
   float* Y_1
 ) {
   int tid = threadIdx.y * blockDim.x + threadIdx.x;
-  __shared__ bool thisAll32, thisAll32Loc, nextAll32[2];
+  __shared__ bool thisAll32, thisAll32Arr[8], nextAll32[2];
   //r = blockIdx.x
   //s_o = blockIdx.y
   int num_threads = blockDim.x * blockDim.y;
@@ -81,22 +81,27 @@ void snig_inferenceAug(
     is_nonzero[1] = false;
     nextAll32[1] = false;
   }
+  if (tid < num_secs) 
+  {
+    thisAll32Arr[tid] = All32_0[blockIdx.x*num_secs+tid];
+    thisAll32 = thisAll32Arr[blockIdx.y];
+  }
   __syncthreads();
 
   for(size_t s_i = 0; s_i < num_secs; ++s_i) {
-    if (tid == 0) {
-      thisAll32Loc = All32_0[blockIdx.x*num_secs+s_i];
-      if (s_i == blockIdx.y) {
-        thisAll32 = thisAll32Loc;
-      }
-    }
-    __syncthreads();
+    // if (tid == 0) {
+    //   thisAll32Loc = All32_0[blockIdx.x*num_secs+s_i];
+    //   if (s_i == blockIdx.y) {
+    //     thisAll32 = thisAll32Loc;
+    //   }
+    // }
+    // __syncthreads();
     if(!is_nonzero_row_0[blockIdx.x * num_secs + s_i]) {
       continue;
     }
     for(size_t j = threadIdx.y + s_i * sec_size; j < (s_i + 1) * sec_size; j += blockDim.y) {
       float valY;
-      if (thisAll32Loc) {
+      if (thisAll32Arr[s_i]) {
         valY = 32.0;
       }
       else{
@@ -118,7 +123,7 @@ void snig_inferenceAug(
   __syncthreads();
   for(size_t i = tid; i < sec_size; i += num_threads) {
     float v = min(float(32), max(results[i], float(0)));
-    if (v != 32.0 || !thisAll32) { //  && !thisAll32
+    if (v != 32.0 || !thisAll32) { //  || !thisAll32
       Y_1[blockIdx.x * num_neurons + blockIdx.y * sec_size + i] = v;
     }
 
