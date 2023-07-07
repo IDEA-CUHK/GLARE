@@ -331,6 +331,12 @@ int SNICIT_GLARE::_infer(
         {16384, 10},
         {65536, 12}
     };
+    std::map<int, int> partition_map = {
+        {1024, 1024}, // 1024
+        {4096, 1024}, // 1024
+        {16384, 1024},
+        {65536, 4096}
+    };
     std::map<int, int> stride_map = {
         {1, 16},
         {2, 32},
@@ -357,6 +363,8 @@ int SNICIT_GLARE::_infer(
     float cluster_time = 0;
     float post_conv_time = 0;
     float recover_time = 0;
+
+    int partition = partition_map[neuron];
 
     for(int l = 0; l < layer; ++l) {
         auto stream = env.get_stream("SNICIT_GLARE");
@@ -512,10 +520,10 @@ int SNICIT_GLARE::_infer(
                         rowsY[nerow++] = idx;
                     }
                 }
-                Safe_Call(cudaMallocManaged((void**)&All32_last, sizeof(bool) * (transpose_batch) * (neuron/1024)));
-                Safe_Call(cudaMallocManaged((void**)&All32_next, sizeof(bool) * (transpose_batch) * (neuron/1024)));
-                Safe_Call(cudaMemset(All32_last, 0, sizeof(bool) * (transpose_batch) * (neuron/1024)));
-                Safe_Call(cudaMemset(All32_next, 1, sizeof(bool) * (transpose_batch) * (neuron/1024)));
+                Safe_Call(cudaMallocManaged((void**)&All32_last, sizeof(bool) * (transpose_batch)*(neuron/partition)));
+                Safe_Call(cudaMallocManaged((void**)&All32_next, sizeof(bool) * (transpose_batch)*(neuron/partition)));
+                Safe_Call(cudaMemset(All32_last, 0, sizeof(bool) * (transpose_batch)*(neuron/partition)));
+                Safe_Call(cudaMemset(All32_next, 1, sizeof(bool) * (transpose_batch)*(neuron/partition)));
 
                 env.event_stop_record("SNICIT_GLARE");
                 float time1 = env.get_event_time("SNICIT_GLARE"); 
@@ -538,7 +546,7 @@ int SNICIT_GLARE::_infer(
                 dim3 block(OUT_CHANNEL, 1, 1);
                 dim3 grid(neuron / OUT_CHANNEL, nerow, 1);
                 post_spMM_GLARE<<<grid, block, sizeof(float)*32, stream>>>(
-                    A_d, C_d, ne_record, centroid_map, rowsY, B_d[l], index_d[l], All32_last, All32_next, transpose_batch, bias, neuron
+                    A_d, C_d, ne_record, centroid_map, rowsY, B_d[l], index_d[l], All32_last, All32_next, transpose_batch, bias, neuron, partition
                 );
                 Safe_Call(cudaStreamSynchronize(stream));
                 post_minus_GLARE<<<nerow, 1024, 0, stream>>>(

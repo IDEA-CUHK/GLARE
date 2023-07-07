@@ -17,7 +17,8 @@ __global__ void post_spMM_GLARE(
     bool* All32_1,
     int batch,
     float bias,
-    int neuron
+    int neuron,
+    int partition
 ) {
     extern __shared__ float shared[];
     __shared__ bool thisAll32[16];
@@ -27,9 +28,9 @@ __global__ void post_spMM_GLARE(
     int rid = rowsY[blockIdx.y];
     int begin_idx = blockIdx.x * OUT_CHANNEL / 16 *  32;
 
-    if(threadIdx.x < neuron / 1024) {
-        thisAll32[threadIdx.x] = All32_0[(neuron / 1024)*rid+threadIdx.x];
-        All32_0[(neuron / 1024)*rid+threadIdx.x] = true;
+    if(threadIdx.x < neuron / partition) {
+        thisAll32[threadIdx.x] = All32_0[(neuron / partition)*rid+threadIdx.x];
+        All32_0[(neuron / partition)*rid+threadIdx.x] = true;
     }
     __syncthreads();
 
@@ -39,7 +40,7 @@ __global__ void post_spMM_GLARE(
         for(int r = 0; r < 32/OUT_CHANNEL; r++) {
             int row_idx = index[idx + r*OUT_CHANNEL+threadIdx.x];  // check every?
             float val;
-            if (thisAll32[row_idx/1024])
+            if (thisAll32[row_idx/partition])
                 val =32.0;
             else
                 val = A[rid*neuron+row_idx];
@@ -53,13 +54,13 @@ __global__ void post_spMM_GLARE(
         }
         float v = __ReLU(result+bias);
 
-        if (v != 32 || !(thisAll32[tid/1024]))
+        if (v != 32) //  || !(thisAll32[tid/1024])
             C[rid*neuron+(tid)] = v;
-        if (v!=32) All32_1[tid/1024] = false;
+        if (v!=32) All32_1[(neuron / partition)*rid+tid/partition] = false;
     }
     else {
-        if(threadIdx.x < neuron / 1024) {
-            thisAll32[threadIdx.x] = All32_0[(neuron / 1024)*centroid_map[rid]+threadIdx.x];
+        if(threadIdx.x < neuron / partition) {
+            thisAll32[threadIdx.x] = All32_0[(neuron / partition)*centroid_map[rid]+threadIdx.x];
         }
         __syncthreads();
         float result = 0;
@@ -67,7 +68,7 @@ __global__ void post_spMM_GLARE(
         for(int r = 0; r < 32/OUT_CHANNEL; r++) {
             int row_idx = index[idx + r*OUT_CHANNEL+threadIdx.x];  // check every?
             float val;
-            if (thisAll32[row_idx/1024])
+            if (thisAll32[row_idx/partition])
                 val =32.0;
             else
                 val = A[centroid_map[rid]*neuron+row_idx];

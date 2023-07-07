@@ -18,7 +18,8 @@ void bf_inference_GLARE(
   const float* valsW,
   const float bias,
   float* Y1,
-  int* rlenY1
+  int* rlenY1,
+  const int partition
 );
 
 //-----------------------------------------------------------------------------
@@ -41,7 +42,8 @@ void bf_inference_GLARE(
   const float* valsW,
   const float bias,
   float* Y1,
-  int* rlenY1
+  int* rlenY1,
+  const int partition
 ) {
 
   if(blockIdx.x >= nerowsY) {
@@ -62,7 +64,7 @@ void bf_inference_GLARE(
 
   for(size_t i = 0; i < N_SLAB; i++) {
     if (tid == 0) {
-        thisAll32 = All32_0[rid*N_SLAB+i];
+        thisAll32 = All32_0[rid*num_neurons_per_layer/partition+i*COL_BLK/partition];
     }
     __syncthreads();
     for(size_t j = threadIdx.x; j < COL_BLK; j++) {
@@ -99,7 +101,7 @@ void bf_inference_GLARE(
       count += __syncthreads_count(v > 0);
       localcount32 = __syncthreads_count(v >= 32);
       if(j + tid < COL_BLK) {
-        if (v < 32 || !thisAll32) {
+        if (v < 32) {
           Y1[rid * num_neurons_per_layer + i * COL_BLK + j + tid] =  min(float(32), max(float(0), v));
         }
         count32 += localcount32;
@@ -108,7 +110,7 @@ void bf_inference_GLARE(
     if(tid == 0) {
       rlenY1[rid] += count;
       if (count32 >= COL_BLK)
-        All32_1[rid*N_SLAB+i] = true;
+        All32_1[rid*num_neurons_per_layer/partition+i*COL_BLK/partition] = true;
     }
   }
 }

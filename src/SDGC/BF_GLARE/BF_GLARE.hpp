@@ -32,6 +32,7 @@ class BF_GLARE : public Base {
     std::vector<float*> _dev_Y;
     size_t _dev_nerowsY;
     size_t _dev_num_inputs;
+    int partition;
 
     int* _results;
 
@@ -105,6 +106,19 @@ void BF_GLARE::infer(
   const std::string& golden_path,
   const size_t num_inputs
 ) {
+  if (Base::_num_neurons <= 4096) {
+    partition = Base::_num_neurons;
+  }
+  else if (Base::_num_neurons == 16384) {
+    if (Base::_num_layers == 120) partition = 8192;
+    if (Base::_num_layers == 480) partition = 8192;
+    if (Base::_num_layers == 1920) partition = 16384;
+  }
+  else if (Base::_num_neurons == 65536) {
+    if (Base::_num_layers == 120) partition = 8192;
+    if (Base::_num_layers == 480) partition = 65536;
+    if (Base::_num_layers == 1920) partition = 65536;
+  }
   _set_parameters(num_inputs);
 
   _preprocess(input_path);
@@ -200,7 +214,8 @@ void BF_GLARE::_infer() {
       valsw,
       Base::_bias,
       _dev_Y[(cur_layer + 1) % 2],
-      _dev_rlenY[(cur_layer + 1) % 2]
+      _dev_rlenY[(cur_layer + 1) % 2],
+      partition
     );
     checkCuda(cudaStreamSynchronize(dev_stream[1]));
 
@@ -262,8 +277,8 @@ void BF_GLARE::_input_alloc() {
   size_t ry_size = Base::_num_inputs * sizeof(int);
 
   for(int buff = 0; buff < 2; ++buff) {
-    checkCuda(cudaMallocManaged(&_dev_All32[buff], Base::_num_inputs * Base::_num_secs * sizeof(bool)));
-    checkCuda(cudaMemset(_dev_All32[buff], 0, Base::_num_inputs * Base::_num_secs * sizeof(bool)));
+    checkCuda(cudaMallocManaged(&_dev_All32[buff], Base::_num_inputs * (Base::_num_neurons/partition) * sizeof(bool)));
+    checkCuda(cudaMemset(_dev_All32[buff], 0, Base::_num_inputs * (Base::_num_neurons/partition) * sizeof(bool)));
     checkCuda(cudaMallocManaged(&_rowsY[buff], ry_size));
     checkCuda(cudaMallocManaged(&_rlenY[buff], ry_size));
     checkCuda(cudaMallocManaged(&_Y[buff], ysize));

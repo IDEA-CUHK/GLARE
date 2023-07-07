@@ -6,7 +6,7 @@
 #include <utility.hpp>
 #include <taskflow/taskflow.hpp>
 #include <taskflow/cudaflow.hpp>
-
+#include <fstream>
 
 namespace GLARE {
 
@@ -27,6 +27,7 @@ class SNIG : public Base {
     size_t _batch_ylen;
     size_t _batch_ysize;
     int* _results;
+    // unsigned int * memreadcount;
     // size_t _num_duplicates; // duplicate inputs for experiments on updating methods
     //                            // number of inputs = _num_duplicates x _num_inputs
 
@@ -238,10 +239,13 @@ void SNIG::_infer() {
           val_w,
           Base::_bias,
           _dev_is_nonzero_row[(k + 1) % 2],
-          _dev_Y[(k + 1) % 2]
-          ).name("Inference"));
+          _dev_Y[(k + 1) % 2]//,
+          // memreadcount,
+          // cur_layer+k
+        ).name("Inference"));
       }
-      }
+      // count.emplace_back(cf.kernel(1, 1, 0, count_kernel, memreadcount, (int)cur_layer, 60000).name("count"));
+    }
 
       // TODO: consider parameterizing the thread numbers
       tf::cudaTask ident = cf.kernel(16, 512, 0, identify, _dev_Y[0], _batch_size, Base::_num_neurons, dev_results);
@@ -300,6 +304,22 @@ void SNIG::_infer() {
   executor.run(taskflow).wait();
 
   auto _toc = std::chrono::steady_clock::now();
+  // std::ofstream myfile;
+  // myfile.open("/home/student/workspace/GLARE/log/SDGC/SNIG-1024.txt", std::ios::out );
+  // if (myfile.is_open())
+  //   printf("file open\n");
+  // else
+  //   printf("file did not open\n");
+  
+  // for (int i = 0; i < 120; i++) {
+  //   unsigned int totmemread = 0;
+  //   for (int j = 0; j < 60000; j++) {
+  //     totmemread += memreadcount[j+i*60000];
+  //   }
+  //   myfile<<i<<": " <<totmemread<<std::endl;
+  // }
+  // myfile.close();
+
   auto _duration = std::chrono::duration_cast<std::chrono::microseconds>(_toc - _tic).count();
   std::cout<<"SNIG info: runtime "<<_duration / 1000.0<< " ms"<<std::endl;
 }
@@ -320,6 +340,10 @@ void SNIG::_weight_alloc() {
 void SNIG::_input_alloc() {
   size_t ylen = Base::_num_inputs *  Base::_num_neurons;
   size_t ysize = ylen * sizeof(float);
+
+
+  // checkCuda(cudaMallocManaged(&memreadcount, sizeof(int)*Base::_num_inputs*120));
+  // checkCuda(cudaMemset(memreadcount, 0, sizeof(int)*Base::_num_inputs*120));
 
   checkCuda(cudaMallocManaged(&_source_Y, ysize));
   checkCuda(cudaMallocManaged(&_source_is_nonzero_row, sizeof(bool) * Base::_num_inputs * Base::_num_secs));

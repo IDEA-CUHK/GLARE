@@ -14,9 +14,13 @@ void snig_inference(
   const float* val_w,
   const float bias,
   bool* is_nonzero_row_1,
-  float* Y_1
+  float* Y_1//,
+  // unsigned int* memreadcnt,
+  // int cur_layer
 );
 
+// __global__ 
+// void count_kernel(unsigned int *memreadcount, int layer, int num_input);
 //-----------------------------------------------------------------------------
 //Definition of kernel function
 //-----------------------------------------------------------------------------
@@ -33,17 +37,22 @@ void snig_inference(
   const float* val_w,
   const float bias,
   bool* is_nonzero_row_1,
-  float* Y_1
+  float* Y_1//,
+  // unsigned int* memreadcnt,
+  // int cur_layer
 ) {
   int tid = threadIdx.y * blockDim.x + threadIdx.x;
   //r = blockIdx.x
   //s_o = blockIdx.y
   int num_threads = blockDim.x * blockDim.y;
-
+  // __shared__ int memread;
+  // memread = 0;
+  // __syncthreads();
   //num_secs is small enough to compute by each single thread
   bool is_all_zero = true;
   for(size_t s_i = 0; s_i < num_secs; ++s_i) {
     is_all_zero &= !is_nonzero_row_0[blockIdx.x * num_secs + s_i];
+    //atomicAdd(&memread, 1);
   }
 
   if(is_all_zero) {
@@ -52,10 +61,12 @@ void snig_inference(
     if(is_nonzero_row_1[blockIdx.x * num_secs + blockIdx.y]) {
       for(size_t j = tid; j < sec_size; j += num_threads) {
         Y_1[blockIdx.x * num_neurons + blockIdx.y * sec_size + j] = 0;
+        //atomicAdd(&memread, 1);
       }
       __syncthreads();
       if(tid == 0) {
         is_nonzero_row_1[blockIdx.x * num_secs + blockIdx.y] = false;
+        //atomicAdd(&memread, 1);
       } 
     }
     return;
@@ -75,6 +86,7 @@ void snig_inference(
   __shared__ bool is_nonzero[2];
   if(tid == 0) {
     is_nonzero[1] = false;
+    //atomicAdd(&memread, 1);
   }
   __syncthreads();
 
@@ -82,17 +94,21 @@ void snig_inference(
     if(!is_nonzero_row_0[blockIdx.x * num_secs + s_i]) {
       continue;
     }
+    //atomicAdd(&memread, 1);
     for(size_t j = threadIdx.y + s_i * sec_size; j < (s_i + 1) * sec_size; j += blockDim.y) {
       float valY = Y_0[blockIdx.x * num_neurons + j];
+      //atomicAdd(&memread, 1);
       if(valY == 0) {
         continue;
       }
       int beg_w = col_w[blockIdx.y * num_neurons + j] + threadIdx.x;
       int end_w = col_w[blockIdx.y * num_neurons + j + 1];
+      //atomicAdd(&memread, 2);
       for(int k = beg_w; k < end_w; k += blockDim.x) {
         int roww = row_w[k];
         float valw = val_w[k];
         atomicAdd(&results[roww - blockIdx.y * sec_size], valY * valw);
+        //atomicAdd(&memread, 2);
       }
     }
   }
@@ -101,6 +117,7 @@ void snig_inference(
     float v = min(float(32), max(results[i], float(0)));
     Y_1[blockIdx.x * num_neurons + blockIdx.y * sec_size + i] = v;
     is_nonzero[v != 0] = true;
+    //atomicAdd(&memread, 1);
   }
 
   //if one thread sets is_nonzero[1] to true
@@ -109,7 +126,22 @@ void snig_inference(
   __syncthreads();
   if(tid == 0) {
     is_nonzero_row_1[blockIdx.x * num_secs + blockIdx.y] = is_nonzero[1];
+    // atomicAdd(&memread, 1);
+    // memreadcnt[blockIdx.x+cur_layer*60000] = memread;
   }
 }
 
-}// end of namespace snig ----------------------------------------------
+
+// __global__ 
+// void count_kernel(unsigned int *memreadcount, int layer, int num_input) {
+//   // unsigned int count = 0;
+//   // for (int i = 0; i < num_input; i++) {
+//   //   count += memreadcount[i];
+//   //   memreadcount[i] = 0;
+//   // }
+//   // printf("%d: %d\n", layer, count);
+// }
+
+
+
+}// end of namespace snig ----c------------------------------------------

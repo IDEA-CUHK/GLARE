@@ -160,7 +160,15 @@ void BF::_infer() {
   //store results
   int* dev_results;
   dev_results = _results;
-
+  // std::ofstream myfile;
+  // myfile.open("/home/student/workspace/GLARE/log/SDGC/BF-"+std::to_string(Base::_num_neurons)+".txt", std::ios::out );
+  // if (myfile.is_open())
+  //   printf("file open\n");
+  // else
+  //   printf("file did not open\n");
+  // int *memreadcnt;
+  // checkCuda(cudaMallocManaged(&memreadcnt, sizeof(int) * Base::_num_inputs));
+  // checkCuda(cudaMemset(memreadcnt, 0, sizeof(int) * Base::_num_inputs));
   std::vector<cudaStream_t> dev_stream(2);
 
   checkCuda(cudaStreamCreate(&dev_stream[0]));
@@ -193,12 +201,20 @@ void BF::_infer() {
       valsw,
       Base::_bias,
       _dev_Y[(cur_layer + 1) % 2],
-      _dev_rlenY[(cur_layer + 1) % 2]
+      _dev_rlenY[(cur_layer + 1) % 2] //,
+      // memreadcnt
     );
     checkCuda(cudaStreamSynchronize(dev_stream[1]));
-
+    // int totmemread = 0;
     _non_empty_rows((cur_layer + 1) % 2);
-
+    // for (int i = 0; i < Base::_num_inputs; i++) {
+    //   if (_dev_rlenY[(cur_layer + 1) % 2][i] == 0) {
+    //     continue;
+    //   }
+    //   totmemread += memreadcnt[i];
+    // }
+    // myfile<<cur_layer<<": " <<totmemread<<std::endl;
+    // checkCuda(cudaMemset(memreadcnt, 0, sizeof(int) * Base::_num_inputs));
     //Rolling swap requires resetting memory for next iteration
     checkCuda(cudaMemset(
       _dev_Y[cur_layer % 2],

@@ -13,17 +13,18 @@ __global__ void n16384_l11_kernel_GLARE(
     bool* All32_1,
     int batch, 
     int neuron, 
-    float bias
+    float bias,
+    int partition
 ) {
     
     extern __shared__ float shared[];
-    __shared__ bool thisAll32[16];
+    __shared__ bool thisAll32[64];
 
     for(int n = threadIdx.x; n < OUT_CHANNEL * 32; n += blockDim.x){
         shared[n] = B[(blockIdx.y * OUT_CHANNEL * 32) + n];
     }
-    if(threadIdx.x < neuron / 1024) {
-        thisAll32[threadIdx.x] = All32_0[(neuron / 1024)*blockIdx.x+threadIdx.x];
+    if(threadIdx.x < neuron / partition) {
+        thisAll32[threadIdx.x] = All32_0[(neuron / partition)*blockIdx.x+threadIdx.x];
     }
 
     __syncthreads();
@@ -37,7 +38,7 @@ __global__ void n16384_l11_kernel_GLARE(
         for(int r = 0; r < 32; ++r) {
             int row_idx = index[idx + r];  // check every?
             float val;
-            if (thisAll32[row_idx / 1024]) { // thisAll32[row_idx / 1024]
+            if (thisAll32[row_idx / partition]) { // thisAll32[row_idx / 1024]
                 val = 32.0;
             }
             else 
@@ -53,14 +54,14 @@ __global__ void n16384_l11_kernel_GLARE(
             if (v != 0) {
                 active[blockIdx.x * blockDim.x + threadIdx.x] = 1;
             }
-            if (v!=32 || !(thisAll32[(blockIdx.y * OUT_CHANNEL  + o_r * 16 + c) / 1024])) {
+            if (v!=32) { //  || !(thisAll32[(blockIdx.y * OUT_CHANNEL  + o_r * 16 + c) / 1024])
                 C[(blockIdx.y * OUT_CHANNEL  + o_r * 16 + c) * batch + blockIdx.x * blockDim.x + threadIdx.x] = v;
             }
             count += (v == 32.0);
         }
     }
     if (count < OUT_CHANNEL) {
-        All32_1[(neuron / 1024)*blockIdx.x+(blockIdx.y*OUT_CHANNEL)/1024] = false;
+        All32_1[(neuron / partition)*blockIdx.x+(blockIdx.y*OUT_CHANNEL)/partition] = false;
     }
 }
 

@@ -233,7 +233,13 @@ int XY_GLARE::_infer(
     int *category_d;
     int *active_d;
     int *old_to_new_map_d;
-    
+    std::map<int, int> partition_map = {
+        {1024, 1024},
+        {4096, 4096}, // 4096
+        {16384, 2048},
+        {65536, 1024}
+    };
+    int partition = partition_map[neuron];
     int this_round_batch = batch;
     int layer = weight.size();
 
@@ -417,10 +423,10 @@ int XY_GLARE::_infer(
                 }
                 transpose_batch = this_round_batch;
 
-                Safe_Call(cudaMallocManaged((void**)&All32_last, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/1024)));
-                Safe_Call(cudaMallocManaged((void**)&All32_next, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/1024)));
-                Safe_Call(cudaMemset(All32_last, 0, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/1024)));
-                Safe_Call(cudaMemset(All32_next, 1, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/1024)));
+                Safe_Call(cudaMallocManaged((void**)&All32_last, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/partition)));
+                Safe_Call(cudaMallocManaged((void**)&All32_next, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/partition)));
+                Safe_Call(cudaMemset(All32_last, 0, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/partition)));
+                Safe_Call(cudaMemset(All32_next, 1, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/partition)));
 
                 Safe_Call(cudaMemcpy(C_d, A_T, sizeof(float) * transpose_batch * neuron, cudaMemcpyDeviceToDevice));
             }
@@ -430,13 +436,13 @@ int XY_GLARE::_infer(
             dim3 grid((transpose_batch + blocksizex - 1) / blocksizex,  neuron / (OUT_CHANNEL));
             if (l >= 22) {
                 n16384_l11_kernel_GLARE<<<grid, block, sizeof(float) * (OUT_CHANNEL * 32), stream>>>(
-                    A_T, B_d[l], C_d, index_d[l], active_d, All32_last, All32_next, transpose_batch, neuron, bias
+                    A_T, B_d[l], C_d, index_d[l], active_d, All32_last, All32_next, transpose_batch, neuron, bias, partition
                 );
                 Safe_Call(cudaStreamSynchronize(stream));
                 bool *tmp = All32_last;
                 All32_last = All32_next;
                 All32_next = tmp;
-                Safe_Call(cudaMemset(All32_next, 1, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/1024)));
+                Safe_Call(cudaMemset(All32_next, 1, sizeof(bool) * ((transpose_batch + 256 - 1) / 256) * (neuron/partition)));
                 // n16384_l11_kernel<<<grid, block, sizeof(float) * (OUT_CHANNEL * 32), stream>>>(
                 //     A_T, B_d[l], C_d, index_d[l], active_d, transpose_batch, neuron, bias
                 // );
