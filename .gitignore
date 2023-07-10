@@ -15,3 +15,5 @@ bin/debug.sh
 scheduled_bm/*
 !scheduled_bm/.gitkeep
 bin/SNIG.json
+plot/
+mobilenetv6/
