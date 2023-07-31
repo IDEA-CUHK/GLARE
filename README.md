@@ -9,9 +9,13 @@ cd bin
 ./compile.sh
 ```
 # Run the executable
-`-m`: method
-`-n`: number of neurons per layer
-`-l`: number of layers
+`-m`: method;
+
+`-n`: number of neurons per layer;
+
+`-l`: number of layers;
+
+`-b`: batch size (if your GPU cannot fit all the data, please use `-b x`, where x < 60000 and can evenly divide 60000).
 
 To run benchmark 1024-120 on BF, run the following command in `bin/`.
 ```
